@@ -44,6 +44,23 @@ class SocketService {
     }
   }
 
+  void getUsers() {
+    sendRequest("get_users", {});
+  }
+
+  void getHistory(String withUser) {
+    sendRequest("get_history", {
+      "with": withUser,
+    });
+  }
+
+  void sendMessage(String to, String content) {
+    sendRequest("send_message", {
+      "to": to,
+      "content": content,
+    });
+  }
+
   void sendRequest(String action, Map<String, dynamic> data) {
     if (_socket != null) {
       final request = {

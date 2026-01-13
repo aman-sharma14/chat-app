@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../network/socket_service.dart';
 import 'home_screen.dart';
 
@@ -20,26 +21,28 @@ class _LoginScreenState extends State<LoginScreen> {
   String _statusMessage = "";
   bool _isLoading = false;
 
+  StreamSubscription? _socketSubscription;
+
   @override
   void initState() {
     super.initState();
     _connectToServer();
     
     // Listen for auth responses
-    _socketService.responses.listen((response) {
+    _socketSubscription = _socketService.responses.listen((response) {
       if (!mounted) return;
       
       setState(() {
         _isLoading = false;
         if (response['status'] == 'success') {
-          if (_isLogin || response['message'] == 'Login successful') {
-             // Navigate to Home on success
+          // Only navigate if strictly a "Login successful" message.
+          // This prevents picking up 'get_users' or message events intended for other screens.
+          if (response['message'] == 'Login successful') {
              Navigator.pushReplacement(
                context, 
                MaterialPageRoute(builder: (_) => HomeScreen(username: response['username'] ?? _usernameController.text))
              );
-          } else {
-            // If just registered, maybe switch to login or auto-login
+          } else if (response['message'] == 'Registration successful') {
             _statusMessage = "Registration Success! Please Login.";
             _isLogin = true; 
           }
@@ -48,6 +51,14 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       });
     });
+  }
+
+  @override
+  void dispose() {
+    _socketSubscription?.cancel();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   Future<void> _connectToServer() async {

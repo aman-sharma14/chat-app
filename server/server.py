@@ -5,9 +5,14 @@ import ssl
 import database_handler
 import config
 
+# Global dictionary to map username -> socket_connection
+# This allows us to find the right socket when A wants to message B.
+connected_clients = {}
+
 # Handles the lifecycle of a single client connection
 def handle_client(conn, addr):
     print(f"[*] Connection established: {addr}")
+    current_username = None
     
     while True:
         try:
@@ -24,11 +29,9 @@ def handle_client(conn, addr):
                 username = request.get("username")
                 password = request.get("password")
                 
-                # Check if the user sent both username and password
                 if not username or not password:
                     response = {"status": "error", "message": "Missing credentials"}
                 else:
-                    # Attempt to register in the database
                     success = database_handler.add_user(username, password)
                     if success:
                         print(f"[AUTH] Registered new user: {username}")
@@ -42,12 +45,15 @@ def handle_client(conn, addr):
                 username = request.get("username")
                 password = request.get("password")
                 
-                # Fetch user from DB to verify password
                 user_record = database_handler.get_user(username)
                 
                 if user_record and database_handler.verify_password(user_record[1], password):
                     print(f"[AUTH] User successfully logged in: {username}")
-                    # In a real app, we would store the session/connection here to route messages later.
+                    
+                    # 1. Store the connection in our global dictionary
+                    connected_clients[username] = conn
+                    current_username = username
+                    
                     response = {"status": "success", "message": "Login successful", "username": username}
                 else:
                     print(f"[AUTH] Failed login attempt for: {username}")
@@ -55,10 +61,62 @@ def handle_client(conn, addr):
                 
                 conn.send(json.dumps(response).encode('utf-8'))
 
+            elif action == "get_users":
+                # Return list of all users so we can choose who to chat with
+                if current_username:
+                    users = database_handler.get_all_users(exclude_username=current_username)
+                    response = {"status": "success", "users": users}
+                    conn.send(json.dumps(response).encode('utf-8'))
+
+            elif action == "get_history":
+                other_user = request.get("with")
+                if current_username and other_user:
+                    messages = database_handler.get_chat_history(current_username, other_user)
+                    response = {
+                        "status": "success", 
+                        "type": "history",
+                        "messages": messages
+                    }
+                    conn.send(json.dumps(response).encode('utf-8'))
+
+            elif action == "send_message":
+                receiver = request.get("to")
+                content = request.get("content")
+                
+                if current_username and receiver and content:
+                    print(f"[MSG] {current_username} -> {receiver}: {content}")
+                    
+                    # 1. Save to Database (Persistent Storage)
+                    database_handler.store_message(current_username, receiver, content)
+                    
+                    # 2. Forward to Receiver (Real-time Delivery)
+                    if receiver in connected_clients:
+                        receiver_conn = connected_clients[receiver]
+                        try:
+                            # Send a JSON packet to the receiver
+                            msg_packet = {
+                                "type": "new_message",
+                                "sender": current_username,
+                                "content": content,
+                                "timestamp": "Now" # In a real app, use actual time
+                            }
+                            receiver_conn.send(json.dumps(msg_packet).encode('utf-8'))
+                        except Exception as e:
+                            print(f"[!] Failed to send to {receiver}: {e}")
+                            # Maybe remove them from connected_clients if socket is dead?
+                    
+                    response = {"status": "success"}
+                    conn.send(json.dumps(response).encode('utf-8'))
+
         except Exception as e:
             print(f"[!] Error with client {addr}: {e}")
             break
 
+    # Cleanup when user disconnects
+    if current_username and current_username in connected_clients:
+        del connected_clients[current_username]
+        print(f"[*] User disconnected: {current_username}")
+    
     conn.close()
     print(f"[*] Connection closed: {addr}")
 

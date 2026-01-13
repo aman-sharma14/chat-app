@@ -61,6 +61,17 @@ def get_user(username):
     conn.close()
     return user
 
+def get_all_users(exclude_username):
+    """
+    Returns a list of all registered usernames, except the requester.
+    """
+    conn = sqlite3.connect(config.DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT username FROM users WHERE username != ?", (exclude_username,))
+    users = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return users
+
 def store_message(sender, receiver, content):
     # Log the message to the database for history/persistence.
     conn = sqlite3.connect(config.DB_NAME)
@@ -69,6 +80,22 @@ def store_message(sender, receiver, content):
                    (sender, receiver, content))
     conn.commit()
     conn.close()
+
+def get_chat_history(user1, user2):
+    """
+    Retrieves all messages between user1 and user2, sorted by time.
+    """
+    conn = sqlite3.connect(config.DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT sender, content FROM messages 
+        WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
+        ORDER BY timestamp ASC
+    """, (user1, user2, user2, user1))
+    
+    messages = [{"sender": row[0], "content": row[1]} for row in cursor.fetchall()]
+    conn.close()
+    return messages
 
 if __name__ == "__main__":
     init_db()
