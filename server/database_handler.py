@@ -39,7 +39,7 @@ def add_user(username, password):
     """
     hashed = hash_password(password)
     try:
-        conn = sqlite3.connect(DB_NAME)
+        conn = sqlite3.connect(config.DB_NAME)
         cursor = conn.cursor()
         cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, hashed))
         conn.commit()
@@ -54,7 +54,7 @@ def get_user(username):
     """
     Fetches user info from the database to check login details.
     """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(config.DB_NAME)
     cursor = conn.cursor()
     cursor.execute("SELECT username, password_hash FROM users WHERE username = ?", (username,))
     user = cursor.fetchone()
@@ -63,7 +63,7 @@ def get_user(username):
 
 def store_message(sender, receiver, content):
     # Log the message to the database for history/persistence.
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(config.DB_NAME)
     cursor = conn.cursor()
     cursor.execute("INSERT INTO messages (sender, receiver, content) VALUES (?, ?, ?)", 
                    (sender, receiver, content))
