@@ -1,14 +1,13 @@
 import sqlite3
 import bcrypt
-
-DB_NAME = "chat_app.db"
+import config
 
 def init_db():
     """
     Sets up the database tables if they don't exist yet.
     We need one table for users and another one for storing messages.
     """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(config.DB_NAME)
     cursor = conn.cursor()
 
     # Users table

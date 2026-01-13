@@ -1,7 +1,9 @@
 import socket
 import threading
 import json
+import ssl
 import database_handler
+import config
 
 # Handles the lifecycle of a single client connection
 def handle_client(conn, addr):
@@ -64,16 +66,34 @@ def handle_client(conn, addr):
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     
-    # Allow local network connections on port 8080
-    server.bind(('0.0.0.0', 8080)) 
+    # Allow local network connections
+    server.bind((config.HOST, config.PORT)) 
     server.listen(5)
     
-    print("[+] Server listening on port 8080...")
+    print(f"[+] Server listening on port {config.PORT} (SSL/TLS Enabled)...")
+    print(f"[i] Loading certs from: {config.CERTS_DIR}")
+
+    # Create SSL Context
+    context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    try:
+        context.load_cert_chain(certfile=config.CERT_FILE, keyfile=config.KEY_FILE)
+    except FileNotFoundError:
+        print("[!] Error: Certificates not found! Please run 'python server/scripts/generate_cert.py'")
+        return
     
     while True:
-        conn, addr = server.accept()
-        # Spin up a new thread for each concurrent user
-        threading.Thread(target=handle_client, args=(conn, addr)).start()
+        try:
+            # Accept the raw connection first
+            client_sock, addr = server.accept()
+            
+            # Wrap the socket with SSL
+            # server_side=True means we are the server
+            conn = context.wrap_socket(client_sock, server_side=True)
+            
+            # Spin up a new thread for each concurrent user
+            threading.Thread(target=handle_client, args=(conn, addr)).start()
+        except Exception as e:
+            print(f"[!] TLS Handshake failed: {e}")
 
 if __name__ == "__main__":
     database_handler.init_db()

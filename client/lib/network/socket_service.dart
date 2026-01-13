@@ -1,12 +1,11 @@
 import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
+import '../config.dart';
 
 class SocketService {
-  // Use 10.0.2.2 for Android Emulator to access the host machine's localhost.
-  // If running on a real device, change this to your laptop's local IP (e.g., 192.168.1.x).
-  static const String _host = '10.0.2.2'; 
-  static const int _port = 8080;
+  static const String _host = AppConfig.serverHost;
+  static const int _port = AppConfig.serverPort;
 
   Socket? _socket;
   
@@ -21,8 +20,15 @@ class SocketService {
 
   Future<void> connect() async {
     try {
-      _socket = await Socket.connect(_host, _port, timeout: Duration(seconds: 5));
-      print("✅ Connected to Server");
+      // Connect using SSL/TLS (SecureSocket)
+      // onBadCertificate: (cert) => true allows us to use our self-signed certificate
+      _socket = await SecureSocket.connect(
+        _host, 
+        _port, 
+        onBadCertificate: (X509Certificate cert) => true,
+        timeout: const Duration(seconds: 5)
+      );
+      print("✅ Connected to Server (Secure)");
 
       _socket?.listen(
         (List<int> data) {
