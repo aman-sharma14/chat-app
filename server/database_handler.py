@@ -11,8 +11,10 @@ def init_db():
     cursor = conn.cursor()
 
     # Users table
+    # Users table
+    # Added public_key for E2EE
     cursor.execute('''CREATE TABLE IF NOT EXISTS users 
-                      (username TEXT PRIMARY KEY, password_hash TEXT)''')
+                      (username TEXT PRIMARY KEY, password_hash TEXT, public_key TEXT)''')
 
     # Messages Table
     cursor.execute('''CREATE TABLE IF NOT EXISTS messages 
@@ -32,7 +34,7 @@ def verify_password(stored_hash: str, provided_password: str):
     # Check if the password user sent matches the hash we have in DB.
     return bcrypt.checkpw(provided_password.encode('utf-8'), stored_hash.encode('utf-8'))
 
-def add_user(username, password):
+def add_user(username, password, public_key):
     """
     Tries to register a new user.
     Returns True if successful, False if the username is already taken.
@@ -41,7 +43,8 @@ def add_user(username, password):
     try:
         conn = sqlite3.connect(config.DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, hashed))
+        cursor.execute("INSERT INTO users (username, password_hash, public_key) VALUES (?, ?, ?)", 
+                       (username, hashed, public_key))
         conn.commit()
         return True
     except sqlite3.IntegrityError:
@@ -56,7 +59,7 @@ def get_user(username):
     """
     conn = sqlite3.connect(config.DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT username, password_hash FROM users WHERE username = ?", (username,))
+    cursor.execute("SELECT username, password_hash, public_key FROM users WHERE username = ?", (username,))
     user = cursor.fetchone()
     conn.close()
     return user
@@ -67,8 +70,9 @@ def get_all_users(exclude_username):
     """
     conn = sqlite3.connect(config.DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT username FROM users WHERE username != ?", (exclude_username,))
-    users = [row[0] for row in cursor.fetchall()]
+    cursor.execute("SELECT username, public_key FROM users WHERE username != ?", (exclude_username,))
+    # Return list of dicts for clearer key association
+    users = [{"username": row[0], "public_key": row[1]} for row in cursor.fetchall()]
     conn.close()
     return users
 

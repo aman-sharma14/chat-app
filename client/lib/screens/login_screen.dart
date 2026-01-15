@@ -76,11 +76,11 @@ class _LoginScreenState extends State<LoginScreen> {
       _statusMessage = "";
     });
 
-    final action = _isLogin ? "login" : "register";
-    _socketService.sendRequest(action, {
-      "username": username,
-      "password": password,
-    });
+    if (_isLogin) {
+      _socketService.login(username, password);
+    } else {
+      _socketService.register(username, password);
+    }
   }
 
   @override

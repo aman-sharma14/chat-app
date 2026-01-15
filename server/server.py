@@ -29,11 +29,12 @@ def handle_client(conn, addr):
             if action == "register":
                 username = request.get("username")
                 password = request.get("password")
+                public_key = request.get("public_key")
                 
-                if not username or not password:
-                    response = {"status": "error", "message": "Missing credentials"}
+                if not username or not password or not public_key:
+                    response = {"status": "error", "message": "Missing credentials or public key"}
                 else:
-                    success = database_handler.add_user(username, password)
+                    success = database_handler.add_user(username, password, public_key)
                     if success:
                         print(f"[AUTH] Registered new user: {username}")
                         response = {"status": "success", "message": "Registration successful"}

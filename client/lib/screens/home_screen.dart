@@ -30,7 +30,13 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       if (response['status'] == 'success' && response['users'] != null) {
         setState(() {
-          _users = List<String>.from(response['users']);
+          final List<dynamic> usersData = response['users'];
+          _users = usersData.map((u) {
+             if (u is Map) {
+                return u['username'] as String;
+             }
+             return u.toString();
+          }).toList();
           _isLoading = false;
         });
       }
