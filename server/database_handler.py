@@ -3,16 +3,12 @@ import bcrypt
 import config
 
 def init_db():
-    """
-    Sets up the database tables if they don't exist yet.
-    We need one table for users and another one for storing messages.
-    """
+
+    # sets up db if doesnt exist
     conn = sqlite3.connect(config.DB_NAME)
     cursor = conn.cursor()
 
     # Users table
-    # Users table
-    # Added public_key for E2EE
     cursor.execute('''CREATE TABLE IF NOT EXISTS users 
                       (username TEXT PRIMARY KEY, password_hash TEXT, public_key TEXT)''')
 
@@ -25,20 +21,19 @@ def init_db():
     conn.close()
 
 def hash_password(password: str):
-    # Securely hash the password using a salt so it's not plain text.
+    # Securely hash the password using a salt
     byte_pwd = password.encode('utf-8')
     pwd_hash = bcrypt.hashpw(byte_pwd, bcrypt.gensalt(rounds=12))
     return pwd_hash.decode('utf-8')
 
 def verify_password(stored_hash: str, provided_password: str):
-    # Check if the password user sent matches the hash we have in DB.
+    # Check password hash in db
     return bcrypt.checkpw(provided_password.encode('utf-8'), stored_hash.encode('utf-8'))
 
 def add_user(username, password, public_key):
-    """
-    Tries to register a new user.
-    Returns True if successful, False if the username is already taken.
-    """
+    
+    # Tries to register a new user.
+    # Returns True if successful, False if the username is already taken.
     hashed = hash_password(password)
     try:
         conn = sqlite3.connect(config.DB_NAME)
@@ -54,9 +49,9 @@ def add_user(username, password, public_key):
         conn.close()
 
 def get_user(username):
-    """
-    Fetches user info from the database to check login details.
-    """
+
+    # Fetches user info from the database to check login details.
+
     conn = sqlite3.connect(config.DB_NAME)
     cursor = conn.cursor()
     cursor.execute("SELECT username, password_hash, public_key FROM users WHERE username = ?", (username,))
@@ -65,12 +60,13 @@ def get_user(username):
     return user
 
 def get_all_users(exclude_username):
-    """
-    Returns a list of all registered usernames, except the requester.
-    """
+    
+    # Returns a list of all registered usernames, except the requester.
+    
     conn = sqlite3.connect(config.DB_NAME)
     cursor = conn.cursor()
     cursor.execute("SELECT username, public_key FROM users WHERE username != ?", (exclude_username,))
+    
     # Return list of dicts for clearer key association
     users = [{"username": row[0], "public_key": row[1]} for row in cursor.fetchall()]
     conn.close()
@@ -86,9 +82,9 @@ def store_message(sender, receiver, content):
     conn.close()
 
 def get_chat_history(user1, user2):
-    """
-    Retrieves all messages between user1 and user2, sorted by time.
-    """
+    
+    # Retrieves all messages between user1 and user2, sorted by time.
+    
     conn = sqlite3.connect(config.DB_NAME)
     cursor = conn.cursor()
     cursor.execute("""

@@ -5,7 +5,18 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 import datetime
 
+import os
+import sys
+
+# Add parent directory to path to import config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import config
+
 def generate_self_signed_cert():
+    # Ensure certs directory exists
+    if not os.path.exists(config.CERTS_DIR):
+        os.makedirs(config.CERTS_DIR)
+
     # Generate private key
     key = rsa.generate_private_key(
         public_exponent=65537,
@@ -40,7 +51,7 @@ def generate_self_signed_cert():
     ).sign(key, hashes.SHA256())
 
     # Write key to file
-    with open("server/server.key", "wb") as f:
+    with open(config.KEY_FILE, "wb") as f:
         f.write(key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
@@ -48,10 +59,10 @@ def generate_self_signed_cert():
         ))
 
     # Write cert to file
-    with open("server/server.crt", "wb") as f:
+    with open(config.CERT_FILE, "wb") as f:
         f.write(cert.public_bytes(serialization.Encoding.PEM))
 
-    print("Successfully generated server/server.key and server/server.crt")
+    print(f"Successfully generated {config.KEY_FILE} and {config.CERT_FILE}")
 
 if __name__ == "__main__":
     generate_self_signed_cert()

@@ -81,12 +81,10 @@ class SocketService {
 
   void _handleResponse(Map<String, dynamic> response) {
       final status = response['status'];
-      final type = response['type']; // 'new_message' or 'history' usually came with status? 
-      // Actually 'new_message' packet in server.py (line 98) doesn't have 'status' key, directly 'type'.
-      // Wait, server code: socket.send for 'new_message' is: {"type": "new_message", ...}
+      final type = response['type']; 
       
-      // Let's check type first
-      if (response.containsKey('type') && response['type'] == 'new_message') {
+      // Handle new message (Server sends {type: "new_message", ...})
+      if (type == 'new_message') {
           // Decrypt
           final encryptedContent = response['content'];
           response['content'] = CryptoUtils().decryptMessage(encryptedContent);
@@ -95,7 +93,6 @@ class SocketService {
       if (status == 'success') {
           if (response.containsKey('users')) {
              // Update Key Cache from get_users
-             // Response: "users": [{"username": "alice", "public_key": "..."}]
              final List<dynamic> users = response['users'];
              for (var u in users) {
                  if (u is Map) {
@@ -104,7 +101,7 @@ class SocketService {
              }
           }
           
-          if (response.containsKey('type') && response['type'] == 'history') {
+          if (type == 'history') {
               // Decrypt history messages
               final List<dynamic> messages = response['messages'];
               for (var msg in messages) {
