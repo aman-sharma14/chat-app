@@ -37,6 +37,7 @@ class _ChatScreenState extends State<ChatScreen> {
                _messages.add({
                  "sender": msg['sender'],
                  "content": msg['content'],
+                 "timestamp": msg['timestamp'], 
                  "isMe": msg['sender'] == widget.currentUser,
                });
              }
@@ -49,6 +50,7 @@ class _ChatScreenState extends State<ChatScreen> {
             _messages.add({
               "sender": response['sender'],
               "content": response['content'],
+              "timestamp": response['timestamp'],
               "isMe": false,
             });
           });
@@ -76,49 +78,132 @@ class _ChatScreenState extends State<ChatScreen> {
       _messages.add({
         "sender": widget.currentUser,
         "content": content,
+        "timestamp": DateTime.now().toIso8601String(),
         "isMe": true,
       });
       _messageController.clear();
     });
   }
+  
+  String _formatTime(String? isoString) {
+    if (isoString == null) return "";
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      final now = DateTime.now();
+      
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
+      
+      // Check if the date is today
+      final isToday = dt.year == now.year && dt.month == now.month && dt.day == now.day;
+      
+      if (isToday) {
+        return "$hour:$minute";
+      } else {
+        return "${dt.month}/${dt.day} $hour:$minute";
+      }
+    } catch (e) {
+      return "";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF2F2F2), // Light grey background
       appBar: AppBar(
-        title: Text(widget.otherUser),
+        centerTitle: true,
+        elevation: 1,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.indigo,
+              child: Text(widget.otherUser.isNotEmpty ? widget.otherUser[0].toUpperCase() : "?", 
+                style: const TextStyle(fontSize: 12, color: Colors.white)),
+            ),
+            const SizedBox(width: 8),
+            Text(widget.otherUser),
+          ],
+        ),
       ),
       body: Column(
         children: [
           Expanded(
             child: _messages.isEmpty 
-              ? const Center(child: Text("Say Hello! 👋"))
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.chat_bubble_outline, size: 60, color: Colors.grey),
+                      const SizedBox(height: 10),
+                      Text("Say Hello to ${widget.otherUser}! 👋", style: const TextStyle(color: Colors.grey)),
+                    ],
+                  )
+                )
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                   itemCount: _messages.length,
                   itemBuilder: (context, index) {
                     final msg = _messages[index];
                     final isMe = msg['isMe'];
+                    final time = _formatTime(msg['timestamp']);
+                    
                     return Align(
                       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isMe ? Colors.indigo : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          msg['content'],
-                          style: TextStyle(color: isMe ? Colors.white : Colors.black87),
-                        ),
+                      child: Column(
+                        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isMe ? Colors.indigoAccent : Colors.white,
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(16),
+                                topRight: const Radius.circular(16),
+                                bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(0),
+                                bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(16),
+                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  offset: Offset(0, 2),
+                                  blurRadius: 2,
+                                )
+                              ],
+                            ),
+                            child: Text(
+                              msg['content'],
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: isMe ? Colors.white : Colors.black87
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12.0, left: 4, right: 4),
+                            child: Text(
+                              time,
+                              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
                 ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
+          Container(
+            padding: const EdgeInsets.all(12.0),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              boxShadow: [BoxShadow(color: Colors.black12, offset: Offset(0, -2), blurRadius: 4)]
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -126,15 +211,25 @@ class _ChatScreenState extends State<ChatScreen> {
                     controller: _messageController,
                     decoration: InputDecoration(
                       hintText: "Type a message...",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      filled: true,
+                      fillColor: const Color(0xFFF2F2F2),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     ),
                     onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send, color: Colors.indigo),
-                  onPressed: _sendMessage,
+                const SizedBox(width: 8),
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.indigo,
+                  child: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                    onPressed: _sendMessage,
+                  ),
                 ),
               ],
             ),

@@ -88,12 +88,12 @@ def get_chat_history(user1, user2):
     conn = sqlite3.connect(config.DB_NAME)
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT sender, content FROM messages 
+        SELECT sender, content, timestamp FROM messages 
         WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
         ORDER BY timestamp ASC
     """, (user1, user2, user2, user1))
     
-    messages = [{"sender": row[0], "content": row[1]} for row in cursor.fetchall()]
+    messages = [{"sender": row[0], "content": row[1], "timestamp": row[2]} for row in cursor.fetchall()]
     conn.close()
     return messages
 

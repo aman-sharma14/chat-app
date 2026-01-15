@@ -2,6 +2,7 @@ import socket
 import threading
 import json
 import ssl
+import datetime
 import database_handler
 import config
 
@@ -98,7 +99,7 @@ def handle_client(conn, addr):
                                 "type": "new_message",
                                 "sender": current_username,
                                 "content": content,
-                                "timestamp": "Now" # In a real app, use actual time
+                                "timestamp": datetime.datetime.now().isoformat() 
                             }
                             receiver_conn.send(json.dumps(msg_packet).encode('utf-8'))
                         except Exception as e:

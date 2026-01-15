@@ -1,14 +1,18 @@
 import sqlite3
 import os
+import sys
 
-DB_NAME = "chat_app.db"
+# Add parent directory to path to import config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import config
 
 def inspect_db():
-    if not os.path.exists(DB_NAME):
-        print(f"[!] Database {DB_NAME} not found.")
+    print(f"[*] Inspecting database at: {config.DB_NAME}")
+    if not os.path.exists(config.DB_NAME):
+        print(f"[!] Database not found at {config.DB_NAME}")
         return
 
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(config.DB_NAME)
     cursor = conn.cursor()
 
     print("\n--- USERS ---")
