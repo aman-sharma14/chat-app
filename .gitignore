@@ -26,3 +26,7 @@ chat_app.db
 *.pem
 *.key
 *.crt
+
+
+verify_ssl.py
+view_db.py
