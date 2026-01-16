@@ -83,12 +83,4 @@ We implemented a Hybrid Encryption Scheme where the server acts only as a direct
    ```
    *Tip: To test with two users, launch two emulators and run `flutter run -d <emulator_id>` for each.*
 
-### 3. Database Inspection
-To verify that messages are actually stored (and encrypted), you can run the inspection script:
-```bash
-python server/scripts/view_db.py
-```
-
----
-
 
