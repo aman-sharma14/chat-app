@@ -18,8 +18,8 @@ env/
 .env
 
 # Database (SQLite)
-*.db
-chat_app.db
+# *.db
+# chat_app.db
 
 
 # SSL Certificates (Do not commit real keys!)
